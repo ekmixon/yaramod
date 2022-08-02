@@ -320,6 +320,9 @@ rule rule_5
         self.assertEqual(expected, yara_file.text_formatted)
 
     def test_pe_iconhash_deleter(self):
+
+
+
         class PeIconhashDeleter(yaramod.ModifyingVisitor):
             """Temporary pe.iconhash() remover which removes pe.iconhash()
             until we get it into the upstream.
@@ -409,15 +412,18 @@ rule rule_5
                 right_context = yaramod.TokenStreamContext(expr.right_operand)
                 left_result = expr.left_operand.accept(self)
                 right_result = expr.right_operand.accept(self)
-                if left_result == yaramod.VisitAction.Delete or right_result == yaramod.VisitAction.Delete:
-                    if left_result == yaramod.VisitAction.Delete:
-                        new_operand = yaramod.bool_val(False).get()
-                        self.cleanup_tokenstreams(left_context, new_operand)
-                        expr.left_operand = new_operand
+                if left_result == yaramod.VisitAction.Delete:
+                    new_operand = yaramod.bool_val(False).get()
+                    self.cleanup_tokenstreams(left_context, new_operand)
+                    expr.left_operand = new_operand
                     if right_result == yaramod.VisitAction.Delete:
                         new_operand = yaramod.bool_val(False).get()
                         self.cleanup_tokenstreams(right_context, new_operand)
                         expr.right_operand = new_operand
+                elif right_result == yaramod.VisitAction.Delete:
+                    new_operand = yaramod.bool_val(False).get()
+                    self.cleanup_tokenstreams(right_context, new_operand)
+                    expr.right_operand = new_operand
                 else:
                     return self.default_handler(context, expr, left_result, right_result)
 
@@ -438,6 +444,7 @@ rule rule_5
                     if index_result == yaramod.VisitAction.Delete:
                         return yaramod.VisitAction.Delete
                 return self.default_handler(context, expr, index_result)
+
 
         yara_file = yaramod.Yaramod().parse_string(r'''
 import "pe"
@@ -498,18 +505,17 @@ rule rule_1
         self.assertEqual(expected, yara_file.text_formatted)
 
     def test_cuckoo_function_replacer(self):
+
+
+
         class CuckooFunctionReplacer(yaramod.ModifyingVisitor):
             def __init__(self):
                 super(CuckooFunctionReplacer, self).__init__()
                 self.filesystem_symbol = None
                 self.registry_symbol = None
-                self.FILESYSTEM_REPLACE = set([
-                    'cuckoo.network.http_post',
-                ])
+                self.FILESYSTEM_REPLACE = {'cuckoo.network.http_post'}
 
-                self.WHITELIST = set([
-                    'cuckoo.network.http_request',
-                ])
+                self.WHITELIST = {'cuckoo.network.http_request'}
 
             def replace_functions(self, yara_file):
                 cuckoo_symbol = yara_file.find_symbol('cuckoo')
@@ -588,15 +594,18 @@ rule rule_1
                 right_context = yaramod.TokenStreamContext(expr.right_operand)
                 left_result = expr.left_operand.accept(self)
                 right_result = expr.right_operand.accept(self)
-                if left_result == yaramod.VisitAction.Delete or right_result == yaramod.VisitAction.Delete:
-                    if left_result == yaramod.VisitAction.Delete:
-                        new_operand = yaramod.bool_val(False).get()
-                        self.cleanup_tokenstreams(left_context, new_operand)
-                        expr.left_operand = new_operand
+                if left_result == yaramod.VisitAction.Delete:
+                    new_operand = yaramod.bool_val(False).get()
+                    self.cleanup_tokenstreams(left_context, new_operand)
+                    expr.left_operand = new_operand
                     if right_result == yaramod.VisitAction.Delete:
                         new_operand = yaramod.bool_val(False).get()
                         self.cleanup_tokenstreams(right_context, new_operand)
                         expr.right_operand = new_operand
+                elif right_result == yaramod.VisitAction.Delete:
+                    new_operand = yaramod.bool_val(False).get()
+                    self.cleanup_tokenstreams(right_context, new_operand)
+                    expr.right_operand = new_operand
                 else:
                     return self.default_handler(context, expr, left_result, right_result)
 
@@ -625,6 +634,7 @@ rule rule_1
                         expr.function.symbol = self.filesystem_symbol
                     elif function_name not in self.WHITELIST:
                         return yaramod.VisitAction.Delete
+
 
         yara_file = yaramod.Yaramod().parse_string(r'''
 import "cuckoo"

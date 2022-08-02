@@ -77,12 +77,20 @@ class BuildExtCommand(build_ext):
         os.makedirs(build_dir, exist_ok=True)
 
         with WorkingDirectory(build_dir):
-            configure_cmd = ['cmake', '-DYARAMOD_PYTHON=ON', '-DPYTHON_EXECUTABLE={}'.format(sys.executable)]
+            configure_cmd = [
+                'cmake',
+                '-DYARAMOD_PYTHON=ON',
+                f'-DPYTHON_EXECUTABLE={sys.executable}',
+            ]
+
             cmake_generator = os.environ.get('CMAKE_GENERATOR', get_default_cmake_generator())
             if cmake_generator is not None:
-                configure_cmd.append('-G{}'.format(cmake_generator))
+                configure_cmd.append(f'-G{cmake_generator}')
             if 'win' in self.plat_name:
-                configure_cmd.append('-DCMAKE_LIBRARY_OUTPUT_DIRECTORY_{}={}'.format(config_name.upper(), module_output_dir))
+                configure_cmd.append(
+                    f'-DCMAKE_LIBRARY_OUTPUT_DIRECTORY_{config_name.upper()}={module_output_dir}'
+                )
+
                 if cmake_generator is not None:
                     vs_version = get_visual_studio_version(cmake_generator)
                     if vs_version is not None and vs_version >= 2019:
@@ -91,19 +99,22 @@ class BuildExtCommand(build_ext):
                         elif self.plat_name == 'win32':
                             configure_cmd.extend(['-A', 'Win32'])
             else:
-                configure_cmd.extend([
-                    '-DCMAKE_BUILD_TYPE={}'.format(config_name),
-                    '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={}'.format(module_output_dir)
-                ])
+                configure_cmd.extend(
+                    [
+                        f'-DCMAKE_BUILD_TYPE={config_name}',
+                        f'-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={module_output_dir}',
+                    ]
+                )
+
             if self.with_unit_tests:
                 configure_cmd.append('-DYARAMOD_TESTS=ON')
             configure_cmd.append(root_dir)
 
             build_cmd = ['cmake', '--build', '.', '--']
             if 'win' in self.plat_name:
-                build_cmd.extend(['/m:{}'.format(os.cpu_count()), '/p:Configuration={}'.format(config_name)])
+                build_cmd.extend([f'/m:{os.cpu_count()}', f'/p:Configuration={config_name}'])
             else:
-                build_cmd.append('-j{}'.format(os.cpu_count()))
+                build_cmd.append(f'-j{os.cpu_count()}')
 
             subprocess.check_call(configure_cmd)
             subprocess.check_call(build_cmd)
@@ -113,17 +124,13 @@ def get_default_cmake_generator():
     help_output = subprocess.check_output(['cmake', '--help']).decode('utf-8')
     default_generator_re = re.compile(r'^\* ([^=<]+).*$', re.MULTILINE)
     match = default_generator_re.search(help_output)
-    if not match:
-        return None
-    return match.group(1).rstrip()
+    return match[1].rstrip() if match else None
 
 
 def get_visual_studio_version(vs_name):
     vs_re = re.compile(r'^Visual Studio [0-9]+ ([0-9]+).*$')
     match = vs_re.fullmatch(vs_name)
-    if not match:
-        return None
-    return int(match.group(1))
+    return int(match[1]) if match else None
 
 
 def get_long_description():
@@ -139,17 +146,16 @@ def parse_yaramod_version():
     version_parts = [None, None, None, '']
     with open('include/yaramod/yaramod.h') as yaramod_file:
         for line in yaramod_file:
-            matches = version_regexp.match(line)
-            if matches:
-                version_type = matches.group(1)
+            if matches := version_regexp.match(line):
+                version_type = matches[1]
                 if version_type == 'MAJOR':
-                    version_parts[0] = matches.group(3)
+                    version_parts[0] = matches[3]
                 elif version_type == 'MINOR':
-                    version_parts[1] = matches.group(3)
+                    version_parts[1] = matches[3]
                 elif version_type == 'PATCH':
-                    version_parts[2] = matches.group(3)
+                    version_parts[2] = matches[3]
                 elif version_type == 'ADDEND':
-                    version_parts[3] = matches.group(5)
+                    version_parts[3] = matches[5]
     assert all(map(lambda x: x is not None, version_parts[:3])), 'Versions MAJOR, MINOR and PATCH need to be specified.'
     return '.'.join(version_parts[:3]) + version_parts[3]
 

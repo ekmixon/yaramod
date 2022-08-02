@@ -349,14 +349,14 @@ class Dumper(yaramod.ObservingVisitor):
 
 def main():
     if len(sys.argv) != 2:
-        sys.exit('Usage: {} YARA_FILE'.format(sys.argv[0]))
+        sys.exit(f'Usage: {sys.argv[0]} YARA_FILE')
 
     dumper = Dumper()
 
     ymod_parser = yaramod.Yaramod()
     yara_file = ymod_parser.parse_file(sys.argv[1])
     for rule in yara_file.rules:
-        print('==== RULE: {}'.format(rule.name))
+        print(f'==== RULE: {rule.name}')
         dumper.observe(rule.condition)
 
 

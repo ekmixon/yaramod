@@ -22,18 +22,28 @@ class BoolSimplifier(yaramod.ModifyingVisitor):
             output = yaramod.bool_val(left_bool.value and right_bool.value).get()
             self.cleanup_tokenstreams(context, output)
             return output
-        # Only left-hand side is boolean constant
         elif left_bool:
             # F and X = F
             # T and X = X
-            output = yaramod.bool_val(False).get() if not left_bool.value else yaramod.YaraExpressionBuilder(right_expr if right_expr else expr.right_operand).get()
+            output = (
+                yaramod.YaraExpressionBuilder(
+                    right_expr or expr.right_operand
+                ).get()
+                if left_bool.value
+                else yaramod.bool_val(False).get()
+            )
+
             self.cleanup_tokenstreams(context, output)
             return output
-        # Only right-hand side is boolean constant
         elif right_bool:
             # X and F = F
             # X and T = X
-            output = yaramod.bool_val(False).get() if not right_bool.value else yaramod.YaraExpressionBuilder(left_expr if left_expr else expr.left_operand).get()
+            output = (
+                yaramod.YaraExpressionBuilder(left_expr or expr.left_operand).get()
+                if right_bool.value
+                else yaramod.bool_val(False).get()
+            )
+
             self.cleanup_tokenstreams(context, output)
             return output
 
@@ -57,18 +67,30 @@ class BoolSimplifier(yaramod.ModifyingVisitor):
             output = yaramod.bool_val(left_bool.value or right_bool.value).get()
             self.cleanup_tokenstreams(context, output)
             return output
-        # Only left-hand side is boolean constant
         elif left_bool:
             # T or X = T
             # F or X = X
-            output = yaramod.bool_val(True).get() if left_bool.value else yaramod.YaraExpressionBuilder(right_expr if right_expr else expr.right_operand).get()
+            output = (
+                yaramod.bool_val(True).get()
+                if left_bool.value
+                else yaramod.YaraExpressionBuilder(
+                    right_expr or expr.right_operand
+                ).get()
+            )
+
             self.cleanup_tokenstreams(context, output)
             return output
-        # Only right-hand side is boolean constant
         elif right_bool:
             # X or T = T
             # X or F = X
-            output = yaramod.bool_val(True).get() if right_bool.value else yaramod.YaraExpressionBuilder(left_expr if left_expr else expr.left_operand).get()
+            output = (
+                yaramod.bool_val(True).get()
+                if right_bool.value
+                else yaramod.YaraExpressionBuilder(
+                    left_expr or expr.left_operand
+                ).get()
+            )
+
             self.cleanup_tokenstreams(context, output)
             return output
 
@@ -110,14 +132,14 @@ class BoolSimplifier(yaramod.ModifyingVisitor):
 
 def main():
     if len(sys.argv) != 2:
-        sys.exit('Usage: {} YARA_FILE'.format(sys.argv[0]))
+        sys.exit(f'Usage: {sys.argv[0]} YARA_FILE')
 
     simplifier = BoolSimplifier()
 
     ymod_parser = yaramod.Yaramod()
     yara_file = ymod_parser.parse_file(sys.argv[1])
     for rule in yara_file.rules:
-        print('==== RULE: {}'.format(rule.name))
+        print(f'==== RULE: {rule.name}')
         print('==== BEFORE')
         print(rule.text)
         rule.condition = simplifier.modify(rule.condition, when_deleted=yaramod.bool_val(False).get())
